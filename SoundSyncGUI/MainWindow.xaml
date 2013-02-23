@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="SoundSync" Height="300.025" Width="614.715" Closing="mainWindow_Closing" Loaded="mainWindow_Loaded">
     <Grid Margin="0,0,-16,-8">
-        <ListBox x:Name="listUsers" HorizontalAlignment="Left" Height="164" Margin="7,63,0,0" VerticalAlignment="Top" Width="156"/>
+        <ListBox x:Name="listUsers" HorizontalAlignment="Left" Height="164" Margin="7,65,0,0" VerticalAlignment="Top" Width="156"/>
         <Button x:Name="btnDownloadLikes" Content="Download Likes" HorizontalAlignment="Left" Margin="7,232,0,0" VerticalAlignment="Top" Width="102" Click="btnDownloadLikes_Click"/>
         <Button x:Name="btnDownloadTracks" Content="Download Tracks" HorizontalAlignment="Left" Margin="114,232,0,0" VerticalAlignment="Top" Width="156" Click="btnDownloadTracks_Click"/>
         <Button x:Name="btnDownloadFollowers" Content="Download Followers" HorizontalAlignment="Left" Margin="277,232,0,0" VerticalAlignment="Top" Width="156" Click="btnDownloadFollowers_Click"/>
