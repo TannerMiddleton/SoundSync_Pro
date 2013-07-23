@@ -119,7 +119,6 @@ namespace SoundSyncGUI
 
         private void bw_DoWork(object sender, DoWorkEventArgs e)
         {
-            //number = 0;
             BackgroundWorker worker = sender as BackgroundWorker;
             worker.ReportProgress(step = 0);
             
@@ -153,6 +152,12 @@ namespace SoundSyncGUI
                             downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
                             filename = MakeValidFileName(title + ".mp3");
                             folderstructure = null;
+
+                            if (artist.ToString().Contains("?"))
+                            {
+                                artist = artist.ToString().Replace("?", "");
+                            }
+
                             folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
                             if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
                             if (File.Exists(folderstructure + @"\" + filename))
@@ -164,10 +169,26 @@ namespace SoundSyncGUI
                             {
                                 WebClient client = new WebClient();
 
+                                int intFailedCount = 0;
+                                bool isDownloaded = false;
+                                do
+                                {
+
+                                    isDownloaded = Download(downloadurl, folderstructure + @"\" + filename, client);
+
+                                    if (!isDownloaded && intFailedCount < 10)
+                                    {
+                                        intFailedCount++;
+                                    }
+                                    else if (intFailedCount >= 10)
+                                    {
+                                        break;
+                                    }
+
+                                } while (!isDownloaded);
+
                                 worker.ReportProgress(step = 2);
-                                client.DownloadFile(downloadurl, folderstructure + @"\" + filename);
                                 System.Threading.Thread.Sleep(100);
-                                //  worker.ReportProgress(number = 3);
                             }
                         }
                     }
@@ -205,6 +226,12 @@ namespace SoundSyncGUI
                                 downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
                                 filename = MakeValidFileName(title + ".mp3");
                                 folderstructure = null;
+
+                                if (artist.ToString().Contains("?"))
+                                {
+                                    artist = artist.ToString().Replace("?", "");
+                                }
+
                                 folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
                                 if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
                                 if (File.Exists(folderstructure + @"\" + filename))
@@ -216,10 +243,26 @@ namespace SoundSyncGUI
                                 {
                                     WebClient client = new WebClient();
 
+                                    int intFailedCount = 0;
+                                    bool isDownloaded = false;
+                                    do
+                                    {
+
+                                        isDownloaded = Download(downloadurl, folderstructure + @"\" + filename, client);
+
+                                        if (!isDownloaded && intFailedCount < 10)
+                                        {
+                                            intFailedCount++;
+                                        }
+                                        else if (intFailedCount >= 10)
+                                        {
+                                            break;
+                                        }
+
+                                    } while (!isDownloaded);
+
                                     worker.ReportProgress(step = 2);
-                                    client.DownloadFile(downloadurl, folderstructure + @"\" + filename);
                                     System.Threading.Thread.Sleep(100);
-                                    //worker.ReportProgress(number = 3);
                                 }
                             }
                         }
@@ -262,6 +305,12 @@ namespace SoundSyncGUI
                                     downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
                                     filename = MakeValidFileName(title + ".mp3");
                                     folderstructure = null;
+
+                                    if (artist.ToString().Contains("?"))
+                                    {
+                                        artist = artist.ToString().Replace("?", "");
+                                    }
+
                                     folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
                                     if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
                                     if (File.Exists(folderstructure + @"\" + filename))
@@ -273,10 +322,26 @@ namespace SoundSyncGUI
                                     {
                                         WebClient client = new WebClient();
 
+                                        int intFailedCount = 0;
+                                        bool isDownloaded = false;
+                                        do
+                                        {
+
+                                            isDownloaded = Download(downloadurl, folderstructure + @"\" + filename, client);
+
+                                            if (!isDownloaded && intFailedCount < 10)
+                                            {
+                                                intFailedCount++;
+                                            }
+                                            else if (intFailedCount >= 10)
+                                            {
+                                                break;
+                                            }
+
+                                        } while (!isDownloaded);
+
                                         worker.ReportProgress(step = 2);
-                                        client.DownloadFile(downloadurl, folderstructure + @"\" + filename);
                                         System.Threading.Thread.Sleep(100);
-                                        //  worker.ReportProgress(number = 3);
                                     }
                                 }
                             }
@@ -311,6 +376,12 @@ namespace SoundSyncGUI
                             downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
                             filename = MakeValidFileName(title + ".mp3");
                             folderstructure = null;
+
+                            if (artist.ToString().Contains("?"))
+                            {
+                                artist = artist.ToString().Replace("?", "");
+                            }
+
                             folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
                             if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
                             if (File.Exists(folderstructure + @"\" + filename))
@@ -322,10 +393,26 @@ namespace SoundSyncGUI
                             {
                                 WebClient client = new WebClient();
 
+                                int intFailedCount = 0;
+                                bool isDownloaded = false;
+                                do
+                                {
+
+                                    isDownloaded = Download(downloadurl, folderstructure + @"\" + filename, client);
+
+                                    if (!isDownloaded && intFailedCount < 10)
+                                    {
+                                        intFailedCount++;
+                                    }
+                                    else if (intFailedCount >= 10)
+                                    {
+                                        break;
+                                    }
+
+                                } while (!isDownloaded);
+
                                 worker.ReportProgress(step = 2);
-                                client.DownloadFile(downloadurl, folderstructure + @"\" + filename);
                                 System.Threading.Thread.Sleep(100);
-                                //  worker.ReportProgress(number = 3);
                             }
                         }
                     }
@@ -336,7 +423,6 @@ namespace SoundSyncGUI
             bw.CancelAsync();
             bw.Dispose();
         }
-
         public double countSongs;
 
         private void btnDownloadLikes_Click(object sender, RoutedEventArgs e)
@@ -358,11 +444,22 @@ namespace SoundSyncGUI
             if (!bw.IsBusy)
             {
                 txtDownloading.Text = "";
-            }
-            
-            //userList.Clear();
-            
+            }         
         }
+
+        private static bool Download(string strUrl, string folderstructure, WebClient client)
+        {
+            try
+            {
+                client.DownloadFile(strUrl, folderstructure);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
 
         private void btnAdd_Click(object sender, RoutedEventArgs e)
         {
@@ -408,7 +505,6 @@ namespace SoundSyncGUI
             downloadType = 1;
             progress = true;
           
-           // username = Convert.ToString(listUsers.SelectedValue);
             optionChoice = 4;
             if (!bw2.IsBusy && !bw.IsBusy)
             {
@@ -425,7 +521,6 @@ namespace SoundSyncGUI
 
         private void btnDownloadFollowers_Click(object sender, RoutedEventArgs e)
         {
-           // ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + listUsers.SelectedValue + "/&client_id=" + Settings.Default.apiKey;
             changePath();
             followers = true;
             username = Convert.ToString(listUsers.SelectedValue);
@@ -444,7 +539,6 @@ namespace SoundSyncGUI
             {
                 txtDownloading.Text = "";
             }
-            
         }
 
         public List<string> userNums = new List<string>();
@@ -612,7 +706,6 @@ namespace SoundSyncGUI
 
                         XmlDocument doc = new XmlDocument();
 
-
                         UserUrl = "http://api.soundcloud.com/users/" + userid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
                         doc.Load(UserUrl);
                         foreach (XmlNode child in doc.DocumentElement)
@@ -691,8 +784,7 @@ namespace SoundSyncGUI
                 username = "";
                 worker2.ReportProgress(number2++);
                 bw2.CancelAsync();
-                bw2.Dispose();
-                  
+                bw2.Dispose();  
             }
         }
 
