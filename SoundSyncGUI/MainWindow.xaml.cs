@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -55,12 +56,11 @@ namespace SoundSyncGUI
         private static XmlDocument doc = new XmlDocument();
         private static XmlDocument doc2 = new XmlDocument();
         private static XmlDocument doc3 = new XmlDocument();
+        private static Regex r = new Regex("[\\~#%&*{}/:<>?|\"-]");
 
         private string title, trackid, trackid2, genre, artist, downloadurl, filename, folderstructure;
         private int count;
         private double progressIncrementValue;
-        private bool areUserNamesValid = true;
-
 
         private void btnDownloadLikes_Click(object sender, RoutedEventArgs e)
         {
@@ -102,9 +102,10 @@ namespace SoundSyncGUI
                                 filename = MakeValidFileName(title + ".mp3");
                                 folderstructure = null;
 
-                                if (artist.ToString().Contains("?"))
+                                //Replace illegal folder characters with sanitized string
+                                if (r.IsMatch(artist))
                                 {
-                                    artist = artist.ToString().Replace("?", "");
+                                    artist = Regex.Replace(r.Replace(artist, " "), @"\s+", " ");
                                 }
 
                                 folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
@@ -230,9 +231,10 @@ namespace SoundSyncGUI
                                     filename = MakeValidFileName(title + ".mp3");
                                     folderstructure = null;
 
-                                    if (artist.ToString().Contains("?"))
+                                    //Replace illegal folder characters with sanitized string
+                                    if (r.IsMatch(artist))
                                     {
-                                        artist = artist.ToString().Replace("?", "");
+                                        artist = Regex.Replace(r.Replace(artist, " "), @"\s+", " ");
                                     }
 
                                     folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
@@ -365,9 +367,10 @@ namespace SoundSyncGUI
                                         filename = MakeValidFileName(title + ".mp3");
                                         folderstructure = null;
 
-                                        if (artist.ToString().Contains("?"))
+                                        //Replace illegal folder characters with sanitized string
+                                        if (r.IsMatch(artist))
                                         {
-                                            artist = artist.ToString().Replace("?", "");
+                                            artist = Regex.Replace(r.Replace(artist, " "), @"\s+", " ");
                                         }
 
                                         folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
