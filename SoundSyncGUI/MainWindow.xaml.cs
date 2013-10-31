@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using System.Xml;
 
 namespace SoundSyncGUI
@@ -28,199 +30,72 @@ namespace SoundSyncGUI
         public MainWindow()
         {
             InitializeComponent();
-
-            bw.WorkerSupportsCancellation = true;
-            bw.WorkerReportsProgress = true;
-            bw.DoWork +=
-                new DoWorkEventHandler(bw_DoWork);
-            bw.ProgressChanged +=
-                new ProgressChangedEventHandler(bw_ProgressChanged);
-
-            bw2.WorkerSupportsCancellation = true;
-            bw2.WorkerReportsProgress = true;
-            bw2.DoWork +=
-                new DoWorkEventHandler(bw_DoWork2);
-            bw2.ProgressChanged +=
-                new ProgressChangedEventHandler(bw_ProgressChanged2);
         }
 
-        private void bw_ProgressChanged2(object sender, ProgressChangedEventArgs e)
+        private static string MakeValidFileName(string name)
         {
-            if (done == true && !bw.IsBusy)
-            {
-                bw.RunWorkerAsync();
-            }
+            string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
+            string invalidReStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
+            return System.Text.RegularExpressions.Regex.Replace(name, invalidReStr, "_");
+        }
 
-            if (done == false)
+        private static bool Download(string strUrl, string folderstructure, WebClient client)
+        {
+            try
             {
-                txtCalculate.Text = Convert.ToString(countSongs + " Songs");
+                client.DownloadFile(strUrl, folderstructure);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
 
-        BackgroundWorker bw = new BackgroundWorker();
-        BackgroundWorker bw2 = new BackgroundWorker();
+        private static XmlDocument doc = new XmlDocument();
+        private static XmlDocument doc2 = new XmlDocument();
+        private static XmlDocument doc3 = new XmlDocument();
 
-        private void bw_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        private string title, trackid, trackid2, genre, artist, downloadurl, filename, folderstructure;
+        private int count;
+        private double progressIncrementValue;
+        private bool areUserNamesValid = true;
+
+
+        private void btnDownloadLikes_Click(object sender, RoutedEventArgs e)
         {
-            if (step == 1)
+            txtDownloading.Text = "";
+            progressCounter.Value = 0;
+            DisableButtons();
+
+            Task.Factory.StartNew(() =>
             {
-                if (progressIncrementValue <= 100)
+                try
                 {
-                    progressCounter.Value += progressIncrementValue;
-                }
-                txtDownloading.Text += "File Exists: " + title + Environment.NewLine;
-                if (countSongs > 0)
-                {
-                    countSongs--;
-                }
-                txtCalculate.Text = Convert.ToString(countSongs) + " Songs";
-                txtDownloading.ScrollToEnd();
-                step = 0;
-            }
-
-            if (step == 2)
-            {
-                progressCounter.Value += progressIncrementValue;
-                txtDownloading.Text += "Downloading " + title + Environment.NewLine;
-                
-                if (countSongs > 0)
-                {
-                    countSongs--;
-                }
-                txtCalculate.Text = Convert.ToString(countSongs) + " Songs";
-                txtDownloading.ScrollToEnd();
-                step = 0;
-            }
-
-            if (step == 3)
-            {            
-                txtDownloading.Text += "Complete" + Environment.NewLine;
-                txtDownloading.ScrollToEnd();
-                step = 0;
-            }
-
-            if (step == 4)
-            {
-                txtDownloading.Text += "All Downloads Complete." + Environment.NewLine;
-                countSongs = 0;
-                progressCounter.Value = 100;
-                txtCalculate.Text = Convert.ToString(countSongs) + " Songs";
-                txtDownloading.ScrollToEnd();
-                step = 0;
-            }
-        }
-
-
-
-        public int step;
-        public string title, trackid, trackid2, genre, artist, downloadurl, filename, folderstructure;
-        public int optionChoice;
-        public string UserUrlFollowings;
-
-        private void bw_DoWork(object sender, DoWorkEventArgs e)
-        {
-            BackgroundWorker worker = sender as BackgroundWorker;
-            worker.ReportProgress(step = 0);
-            
-
-            XmlDocument doc = new XmlDocument();
-
-            if (optionChoice == 1)
-            {
-                foreach (string users in userList)
-                {
-                    XmlDocument doc3 = new XmlDocument();
-                    ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
-
-                    doc3.Load(ResolveUrl);
-                    userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
-
-                    UserUrl = "http://api.soundcloud.com/users/" + userid + "/favorites.xml?client_id=" + Settings.Default.apiKey;
-
-                    doc.Load(UserUrl);
-                    foreach (XmlNode child in doc.DocumentElement)
+                    if (!CountLikes())
                     {
-
-                        string candownload = child.SelectSingleNode("downloadable").InnerText;
-
-                        if (candownload == "true")
-                        {
-                            title = child.SelectSingleNode("title").InnerText;
-                            trackid = child.SelectSingleNode("id").InnerText;
-                            genre = child.SelectSingleNode("genre").InnerText;
-                            artist = child.SelectSingleNode("user").SelectSingleNode("username").InnerText;
-                            downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
-                            filename = MakeValidFileName(title + ".mp3");
-                            folderstructure = null;
-
-                            if (artist.ToString().Contains("?"))
-                            {
-                                artist = artist.ToString().Replace("?", "");
-                            }
-
-                            folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
-                            if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
-                            if (File.Exists(folderstructure + @"\" + filename))
-                            {
-                                System.Threading.Thread.Sleep(100);
-                                worker.ReportProgress(step = 1);
-                            }
-                            else
-                            {
-                                WebClient client = new WebClient();
-
-                                int intFailedCount = 0;
-                                bool isDownloaded = false;
-                                do
-                                {
-
-                                    isDownloaded = Download(downloadurl, folderstructure + @"\" + filename, client);
-
-                                    if (!isDownloaded && intFailedCount < 10)
-                                    {
-                                        intFailedCount++;
-                                    }
-                                    else if (intFailedCount >= 10)
-                                    {
-                                        break;
-                                    }
-
-                                } while (!isDownloaded);
-
-                                worker.ReportProgress(step = 2);
-                                System.Threading.Thread.Sleep(100);
-                            }
-                        }
+                        return;
                     }
-                }
-            }
-            else if (optionChoice == 2)
-            {
-                foreach (string users in userList)
-                {
-                    XmlDocument doc3 = new XmlDocument();
-                    ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
 
-                    doc3.Load(ResolveUrl);
-
-                    string UserUrlFollowings = "http://api.soundcloud.com/users/" + userid + "/followings.xml?client_id=" + Settings.Default.apiKey;
-                    doc.Load(UserUrlFollowings);
-                    foreach (XmlNode child2 in doc.DocumentElement)
+                    foreach (string users in listUsers.Items)
                     {
+                        string ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
 
-                        XmlDocument doc2 = new XmlDocument();
-                        string trackid = child2.SelectSingleNode("id").InnerText;
-                        UserUrl = "http://api.soundcloud.com/users/" + trackid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
-                        doc2.Load(UserUrl);
+                        doc3.Load(ResolveUrl);
+                        string userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
 
-                        foreach (XmlNode child in doc2.DocumentElement)
+                        string UserUrl = "http://api.soundcloud.com/users/" + userid + "/favorites.xml?client_id=" + Settings.Default.apiKey;
+
+                        doc.Load(UserUrl);
+                        foreach (XmlNode child in doc.DocumentElement)
                         {
+
                             string candownload = child.SelectSingleNode("downloadable").InnerText;
 
                             if (candownload == "true")
                             {
                                 title = child.SelectSingleNode("title").InnerText;
-                                trackid2 = child.SelectSingleNode("id").InnerText;
+                                trackid = child.SelectSingleNode("id").InnerText;
                                 genre = child.SelectSingleNode("genre").InnerText;
                                 artist = child.SelectSingleNode("user").SelectSingleNode("username").InnerText;
                                 downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
@@ -236,8 +111,17 @@ namespace SoundSyncGUI
                                 if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
                                 if (File.Exists(folderstructure + @"\" + filename))
                                 {
-                                    worker.ReportProgress(step = 1);
-                                    System.Threading.Thread.Sleep(100);
+                                    count--;
+                                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                                    {
+                                        txtDownloading.Text += "File Exists: " + title + Environment.NewLine;
+                                        txtCalculate.Text = count.ToString();
+                                        if (progressIncrementValue <= 100)
+                                        {
+                                            progressCounter.Value += progressIncrementValue;
+                                        }
+                                    }));
+                                    System.Threading.Thread.Sleep(20);
                                 }
                                 else
                                 {
@@ -261,45 +145,85 @@ namespace SoundSyncGUI
 
                                     } while (!isDownloaded);
 
-                                    worker.ReportProgress(step = 2);
-                                    System.Threading.Thread.Sleep(100);
+                                    count--;
+
+                                    //Use this to update the UI
+                                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                                    {
+                                        txtCalculate.Text = Convert.ToString(count + " Songs");
+
+                                        if (progressIncrementValue <= 100)
+                                        {
+                                            progressCounter.Value += progressIncrementValue;
+                                        }
+
+                                        txtDownloading.Text += "Downloading " + title + Environment.NewLine;
+
+                                        txtDownloading.ScrollToEnd();
+
+                                    }));
+
+                                    System.Threading.Thread.Sleep(20);
                                 }
                             }
                         }
                     }
-                }
-            }
-            else if (optionChoice == 3)
-            {
-                
-                    foreach (string users in userList)
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
                     {
-                        XmlDocument doc3 = new XmlDocument();
-                        ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
+                        txtDownloading.Text += "All Downloads Complete." + Environment.NewLine;
+                        count = 0;
+                        progressCounter.Value = 100;
+                        txtCalculate.Text = Convert.ToString(count) + " Songs";
+                        txtDownloading.ScrollToEnd();
+                        EnableButtons();
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
+                finally
+                {
+                    EnableButtons();
+                }
+            });
+        }
 
-                        doc3.Load(ResolveUrl);
-                        userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
+        private void btnDownloadTracks_Click(object sender, RoutedEventArgs e)
+        {
+            txtDownloading.Text = "";
+            txtCalculate.Text = "0";
+            progressCounter.Value = 0;
+            DisableButtons();
 
-                        string UserUrlFollowings = "http://api.soundcloud.com/users/" + userid + "/followings.xml?client_id=" + Settings.Default.apiKey;
-                        doc.Load(UserUrlFollowings);
-
-
-                        foreach (XmlNode child2 in doc.DocumentElement)
+            Task.Factory.StartNew(() =>
+                {
+                    try
+                    {
+                        if (!CountTracks())
                         {
+                            return;
+                        }
 
-                            XmlDocument doc2 = new XmlDocument();
-                            string trackid = child2.SelectSingleNode("id").InnerText;
-                            UserUrl = "http://api.soundcloud.com/users/" + trackid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
-                            doc2.Load(UserUrl);
+                        foreach (string users in listUsers.Items)
+                        {
+                            string ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
 
-                            foreach (XmlNode child in doc2.DocumentElement)
+                            doc3.Load(ResolveUrl);
+                            string userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
+
+                            string UserUrl = "http://api.soundcloud.com/users/" + userid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
+
+                            doc.Load(UserUrl);
+                            foreach (XmlNode child in doc.DocumentElement)
                             {
+
                                 string candownload = child.SelectSingleNode("downloadable").InnerText;
 
                                 if (candownload == "true")
                                 {
                                     title = child.SelectSingleNode("title").InnerText;
-                                    trackid2 = child.SelectSingleNode("id").InnerText;
+                                    trackid = child.SelectSingleNode("id").InnerText;
                                     genre = child.SelectSingleNode("genre").InnerText;
                                     artist = child.SelectSingleNode("user").SelectSingleNode("username").InnerText;
                                     downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
@@ -315,8 +239,19 @@ namespace SoundSyncGUI
                                     if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
                                     if (File.Exists(folderstructure + @"\" + filename))
                                     {
-                                        worker.ReportProgress(step = 1);
-                                        System.Threading.Thread.Sleep(100);
+                                        count--;
+                                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                                        {
+                                            txtDownloading.Text += "File Exists: " + title + Environment.NewLine;
+                                            txtCalculate.Text = count.ToString();
+                                            if (progressIncrementValue <= 100)
+                                            {
+                                                progressCounter.Value += progressIncrementValue;
+                                            }
+                                        }));
+
+                                        System.Threading.Thread.Sleep(20);
+
                                     }
                                     else
                                     {
@@ -340,144 +275,354 @@ namespace SoundSyncGUI
 
                                         } while (!isDownloaded);
 
-                                        worker.ReportProgress(step = 2);
-                                        System.Threading.Thread.Sleep(100);
+                                        count--;
+
+                                        //Use this to update the UI
+                                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                                        {
+                                            txtCalculate.Text = Convert.ToString(count + " Songs");
+
+                                            if (progressIncrementValue <= 100)
+                                            {
+                                                progressCounter.Value += progressIncrementValue;
+                                            }
+
+                                            txtDownloading.Text += "Downloading " + title + Environment.NewLine;
+
+                                            txtDownloading.ScrollToEnd();
+
+                                        }));
+
+                                        System.Threading.Thread.Sleep(20);
                                     }
                                 }
                             }
                         }
-
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                           {
+                               txtDownloading.Text += "All Downloads Complete." + Environment.NewLine;
+                               count = 0;
+                               progressCounter.Value = 100;
+                               txtCalculate.Text = Convert.ToString(count) + " Songs";
+                               txtDownloading.ScrollToEnd();
+                               EnableButtons();
+                           }));
                     }
-            }
-            else if (optionChoice == 4)
-            {
-                foreach (string users in userList)
-                {
-                    XmlDocument doc3 = new XmlDocument();
-                    ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
-
-                    doc3.Load(ResolveUrl);
-                    userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
-
-                    UserUrl = "http://api.soundcloud.com/users/" + userid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
-
-                    doc.Load(UserUrl);
-                    foreach (XmlNode child in doc.DocumentElement)
+                    catch (Exception ex)
                     {
+                        MessageBox.Show(ex.Message);
+                    }
+                    finally
+                    {
+                        EnableButtons();
+                    }
+                });
+        }
 
+        private void btnDownloadFollowers_Click(object sender, RoutedEventArgs e)
+        {
+            txtDownloading.Text = "";
+            txtCalculate.Text = "0";
+            progressCounter.Value = 0;
+            DisableButtons();
+
+            Task.Factory.StartNew(() =>
+                {
+                    try
+                    {
+                        if (!CountFollowersTracks())
+                        {
+                            return;
+                        }
+
+                        foreach (string users in listUsers.Items)
+                        {
+                            string ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
+
+                            doc3.Load(ResolveUrl);
+                            string userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
+
+                            string UserUrlFollowings = "http://api.soundcloud.com/users/" + userid + "/followings.xml?client_id=" + Settings.Default.apiKey;
+                            doc.Load(UserUrlFollowings);
+
+                            foreach (XmlNode child2 in doc.DocumentElement)
+                            {
+                                string trackid = child2.SelectSingleNode("id").InnerText;
+                                string UserUrl = "http://api.soundcloud.com/users/" + trackid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
+                                doc2.Load(UserUrl);
+
+                                foreach (XmlNode child in doc2.DocumentElement)
+                                {
+                                    string candownload = child.SelectSingleNode("downloadable").InnerText;
+
+                                    if (candownload == "true")
+                                    {
+                                        title = child.SelectSingleNode("title").InnerText;
+                                        trackid2 = child.SelectSingleNode("id").InnerText;
+                                        genre = child.SelectSingleNode("genre").InnerText;
+                                        artist = child.SelectSingleNode("user").SelectSingleNode("username").InnerText;
+                                        downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
+                                        filename = MakeValidFileName(title + ".mp3");
+                                        folderstructure = null;
+
+                                        if (artist.ToString().Contains("?"))
+                                        {
+                                            artist = artist.ToString().Replace("?", "");
+                                        }
+
+                                        folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
+                                        if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
+                                        if (File.Exists(folderstructure + @"\" + filename))
+                                        {
+                                            count--;
+                                            Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                                            {
+                                                txtDownloading.Text += "File Exists: " + title + Environment.NewLine;
+                                                txtCalculate.Text = count.ToString();
+                                                if (progressIncrementValue <= 100)
+                                                {
+                                                    progressCounter.Value += progressIncrementValue;
+                                                }
+                                            }));
+
+                                            System.Threading.Thread.Sleep(20);
+                                        }
+                                        else
+                                        {
+                                            WebClient client = new WebClient();
+
+                                            int intFailedCount = 0;
+                                            bool isDownloaded = false;
+                                            do
+                                            {
+
+                                                isDownloaded = Download(downloadurl, folderstructure + @"\" + filename, client);
+
+                                                if (!isDownloaded && intFailedCount < 10)
+                                                {
+                                                    intFailedCount++;
+                                                }
+                                                else if (intFailedCount >= 10)
+                                                {
+                                                    break;
+                                                }
+
+                                            } while (!isDownloaded);
+
+                                            count--;
+                                            //Use this to update the UI
+                                            Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                                            {
+                                                txtCalculate.Text = Convert.ToString(count + " Songs");
+
+                                                if (progressIncrementValue <= 100)
+                                                {
+                                                    progressCounter.Value += progressIncrementValue;
+                                                }
+
+                                                txtDownloading.Text += "Downloading " + title + Environment.NewLine;
+
+                                                txtDownloading.ScrollToEnd();
+
+                                            }));
+
+                                            System.Threading.Thread.Sleep(20);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                        {
+                            txtDownloading.Text += "All Downloads Complete." + Environment.NewLine;
+                            count = 0;
+                            progressCounter.Value = 100;
+                            txtCalculate.Text = Convert.ToString(count) + " Songs";
+                            txtDownloading.ScrollToEnd();
+                            EnableButtons();
+                        }));
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
+                    }
+                    finally
+                    {
+                        EnableButtons();
+                    }
+                });
+        }
+
+        private bool CountLikes()
+        {
+            foreach (string users in listUsers.Items)
+            {
+                try
+                {
+                    string ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
+                    doc3.Load(ResolveUrl);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("The Username You Entered Is Invalid.");
+
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                    {
+                        EnableButtons();
+                    }));
+                    return false;
+                }
+
+                string userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
+
+                string UserUrl = "http://api.soundcloud.com/users/" + userid + "/favorites.xml?client_id=" + Settings.Default.apiKey;
+                doc.Load(UserUrl);
+
+                foreach (XmlNode child in doc.DocumentElement)
+                {
+
+                    string candownload = child.SelectSingleNode("downloadable").InnerText;
+
+                    if (candownload == "true")
+                    {
+                        count++;
+
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                        {
+                            txtCalculate.Text = count.ToString();
+                        }));
+                    }
+                }
+            }
+            if (count > 0)
+            {
+                progressIncrementValue = 100 / count;
+            }
+            return true;
+        }
+
+        private bool CountTracks()
+        {
+            foreach (string users in listUsers.Items)
+            {
+                try
+                {
+                    string ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
+                    doc3.Load(ResolveUrl);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("The Username You Entered Is Invalid.");
+
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                    {
+                        EnableButtons();
+                    }));
+                    return false;
+                }
+
+                string userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
+
+                string UserUrl = "http://api.soundcloud.com/users/" + userid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
+                doc.Load(UserUrl);
+                foreach (XmlNode child in doc.DocumentElement)
+                {
+                    string candownload = child.SelectSingleNode("downloadable").InnerText;
+
+                    if (candownload == "true")
+                    {
+                        count++;
+
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                        {
+                            txtCalculate.Text = count.ToString();
+                        }));
+                    }
+                }
+            }
+            if (count > 0)
+            {
+                progressIncrementValue = 100 / count;
+            }
+            return true;
+        }
+
+        private bool CountFollowersTracks()
+        {
+            foreach (string users in listUsers.Items)
+            {
+                try
+                {
+                    string ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
+                    doc3.Load(ResolveUrl);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("The Username You Entered Is Invalid.");
+
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                    {
+                        EnableButtons();
+                    }));
+                    return false;
+                }
+
+                string userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
+
+                string UserUrlFollowings = "http://api.soundcloud.com/users/" + userid + "/followings.xml?client_id=" + Settings.Default.apiKey;
+                doc.Load(UserUrlFollowings);
+
+                foreach (XmlNode child2 in doc.DocumentElement)
+                {
+                    string trackid = child2.SelectSingleNode("id").InnerText;
+                    string UserUrl = "http://api.soundcloud.com/users/" + trackid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
+                    doc2.Load(UserUrl);
+
+                    foreach (XmlNode child in doc2.DocumentElement)
+                    {
                         string candownload = child.SelectSingleNode("downloadable").InnerText;
 
                         if (candownload == "true")
                         {
-                            title = child.SelectSingleNode("title").InnerText;
-                            trackid = child.SelectSingleNode("id").InnerText;
-                            genre = child.SelectSingleNode("genre").InnerText;
-                            artist = child.SelectSingleNode("user").SelectSingleNode("username").InnerText;
-                            downloadurl = child.SelectSingleNode("download-url").InnerText + "?client_id=" + Settings.Default.apiKey;
-                            filename = MakeValidFileName(title + ".mp3");
-                            folderstructure = null;
+                            count++;
 
-                            if (artist.ToString().Contains("?"))
+                            Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
                             {
-                                artist = artist.ToString().Replace("?", "");
-                            }
-
-                            folderstructure = Settings.Default.chooseDirectory + @"\SoundCloudMusic\" + artist;
-                            if (!Directory.Exists(folderstructure)) { Directory.CreateDirectory(folderstructure); }
-                            if (File.Exists(folderstructure + @"\" + filename))
-                            {
-                                System.Threading.Thread.Sleep(100);
-                                worker.ReportProgress(step = 1);
-                            }
-                            else
-                            {
-                                WebClient client = new WebClient();
-
-                                int intFailedCount = 0;
-                                bool isDownloaded = false;
-                                do
-                                {
-
-                                    isDownloaded = Download(downloadurl, folderstructure + @"\" + filename, client);
-
-                                    if (!isDownloaded && intFailedCount < 10)
-                                    {
-                                        intFailedCount++;
-                                    }
-                                    else if (intFailedCount >= 10)
-                                    {
-                                        break;
-                                    }
-
-                                } while (!isDownloaded);
-
-                                worker.ReportProgress(step = 2);
-                                System.Threading.Thread.Sleep(100);
-                            }
+                                txtCalculate.Text = count.ToString();
+                            }));
                         }
                     }
                 }
             }
-            worker.ReportProgress(step = 4);
-            userList.Clear();
-            bw.CancelAsync();
-            bw.Dispose();
-        }
-        public double countSongs;
-
-        private void btnDownloadLikes_Click(object sender, RoutedEventArgs e)
-        {
-            //DownloadSongs sync = new DownloadSongs();
-            //ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + listUsers.SelectedValue + "/&client_id=" + Settings.Default.apiKey;
-            changePath();
-            likes = true;
-            progress = true;
-            username = Convert.ToString(listUsers.SelectedValue);
-            downloadType = 2;
-            optionChoice = 1;
-            if (!bw2.IsBusy && !bw.IsBusy)
+            if (count > 0)
             {
-                countSongs = 0;
-                progressCounter.Value = 0;
-                bw2.RunWorkerAsync();
+                progressIncrementValue = 100 / count;
             }
-            if (!bw.IsBusy)
-            {
-                txtDownloading.Text = "";
-            }         
+            return true;
         }
-
-        private static bool Download(string strUrl, string folderstructure, WebClient client)
-        {
-            try
-            {
-                client.DownloadFile(strUrl, folderstructure);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
 
         private void btnAdd_Click(object sender, RoutedEventArgs e)
         {
             listUsers.Items.Add(txtAddUser.Text);
             txtAddUser.Text = "";
-
         }
 
-        private void mainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void btnRemove_Click(object sender, RoutedEventArgs e)
+        {
+            listUsers.Items.Remove(listUsers.SelectedItem);
+        }
+
+        private void mainWindow_Closing(object sender, CancelEventArgs e)
         {
             Environment.Exit(0);
         }
 
-        private static string MakeValidFileName(string name)
+        private void mainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
-            string invalidReStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
-            return System.Text.RegularExpressions.Regex.Replace(name, invalidReStr, "_");
+            txtDownloading.IsReadOnly = true;
+
+            txtDirectory.Text = Settings.Default.chooseDirectory;
+            changePath();
         }
 
         public void changePath()
@@ -487,310 +632,6 @@ namespace SoundSyncGUI
                 MessageBox.Show("Please Choose A Directory To Download Music To.");
                 btnDirectory_Click(null, null);
             }
-        }
-
-        public string UserUrl;
-
-        public string userid, userid2;
-        public int downloadType;
-
-        public string ResolveUrl;
-
-        public List<string> userList = new List<string>();
-
-        private void btnDownloadTracks_Click(object sender, RoutedEventArgs e)
-        {
-            changePath();
-            tracks = true;
-            downloadType = 1;
-            progress = true;
-          
-            optionChoice = 4;
-            if (!bw2.IsBusy && !bw.IsBusy)
-            {
-                countSongs = 0;
-                progressCounter.Value = 0;
-                bw2.RunWorkerAsync();
-               
-            }
-            if (!bw.IsBusy)
-            {
-                txtDownloading.Text = "";
-            }
-        }
-
-        private void btnDownloadFollowers_Click(object sender, RoutedEventArgs e)
-        {
-            changePath();
-            followers = true;
-            username = Convert.ToString(listUsers.SelectedValue);
-            progress = true;
-            
-            downloadType = 3;
-            optionChoice = 2;
-            userList.Clear();
-            if (!bw2.IsBusy && !bw.IsBusy)
-            {
-                progressCounter.Value = 0;
-                countSongs = 0;
-                bw2.RunWorkerAsync();
-            }
-            if (!bw.IsBusy)
-            {
-                txtDownloading.Text = "";
-            }
-        }
-
-        public List<string> userNums = new List<string>();
-
-        private void btnDownloadAll_Click(object sender, RoutedEventArgs e)
-        {
-            progress = true;
-            changePath();
-            foreach (string stuff in listUsers.Items)
-            {
-                userList.Add(stuff);
-            }
-            all = true;
-            downloadType = 4;
-            optionChoice = 3;
-            
-            if (!bw2.IsBusy && !bw.IsBusy)
-            {
-                foreach (string stuff in listUsers.Items)
-                {
-                    userList.Add(stuff);
-                }
-                txtCalculate.Text = "";
-                progressCounter.Value = 0;
-                countSongs = 0;
-                bw2.RunWorkerAsync();
-            }
-            if (!bw.IsBusy)
-            {
-                txtDownloading.Text = "";
-            }
-        }
-        public bool progress = true;
-        public double progressIncrementValue;
-        public bool done;
-        public bool likes, followers, tracks, all;
-        public int number2;
-        public string username;
-        private void bw_DoWork2(object sender, DoWorkEventArgs e)
-        {
-            countSongs = 0;
-            done = false;
-            BackgroundWorker worker2 = sender as BackgroundWorker;
-
-            while (progress == true)
-            {
-                if (all == true)
-                {
-                    userList.Clear();
-
-                    foreach (string stuff in listUsers.Items)
-                    {
-                        userList.Add(stuff);
-                    }
-                    System.Threading.Thread.Sleep(100);
-                    foreach (string users in userList)
-                    {
-                        XmlDocument doc3 = new XmlDocument();
-                        try
-                        {
-                            ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
-                            doc3.Load(ResolveUrl);
-                        }
-                        catch (Exception)
-                        {
-                            MessageBox.Show("The Username You Entered Is Invalid.");
-                            done = true;
-                        }
-                        userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
-                        XmlDocument doc = new XmlDocument();
-                        string UserUrlFollowings = "http://api.soundcloud.com/users/" + userid + "/followings.xml?client_id=" + Settings.Default.apiKey;
-                        doc.Load(UserUrlFollowings);
-
-
-                        foreach (XmlNode child2 in doc.DocumentElement)
-                        {
-
-                            XmlDocument doc2 = new XmlDocument();
-                            string trackid = child2.SelectSingleNode("id").InnerText;
-                            UserUrl = "http://api.soundcloud.com/users/" + trackid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
-                            doc2.Load(UserUrl);
-
-                            foreach (XmlNode child in doc2.DocumentElement)
-                            {
-                                string candownload = child.SelectSingleNode("downloadable").InnerText;
-
-                                if (candownload == "true")
-                                {
-                                    countSongs++;
-                                    System.Threading.Thread.Sleep(100);
-                                    worker2.ReportProgress(number2++);
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (likes == true)
-                {
-                    userList.Clear();
-
-                    foreach (string stuff in listUsers.Items)
-                    {
-                        userList.Add(stuff);
-                    }
-                    System.Threading.Thread.Sleep(100);
-
-                    foreach (string users in userList)
-                    {
-                        XmlDocument doc3 = new XmlDocument();
-                        try
-                        {
-                            ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
-                            doc3.Load(ResolveUrl);
-                        }
-                        catch (Exception)
-                        {
-                            MessageBox.Show("The Username You Entered Is Invalid.");
-                            done = true;
-                        }
-
-                        userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
-
-                        XmlDocument doc = new XmlDocument();
-                        UserUrl = "http://api.soundcloud.com/users/" + userid + "/favorites.xml?client_id=" + Settings.Default.apiKey;
-                        doc.Load(UserUrl);
-
-                        foreach (XmlNode child in doc.DocumentElement)
-                        {
-
-                            string candownload = child.SelectSingleNode("downloadable").InnerText;
-
-                            if (candownload == "true")
-                            {
-                                countSongs++;
-                                System.Threading.Thread.Sleep(100);
-                                worker2.ReportProgress(number2++);
-                            }
-                        }
-                    }
-                }
-                else if (tracks == true)
-                {
-                    userList.Clear();
-
-                    foreach (string stuff in listUsers.Items)
-                    {
-                        userList.Add(stuff);
-                    }
-                    System.Threading.Thread.Sleep(100);
-                    foreach (string users in userList)
-                    {
-                        XmlDocument doc3 = new XmlDocument();
-                        try
-                        {
-                            ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
-                            doc3.Load(ResolveUrl);
-                        }
-                        catch (Exception)
-                        {
-                            MessageBox.Show("The Username You Entered Is Invalid.");
-                            done = true;
-                        }
-
-                        userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
-
-                        XmlDocument doc = new XmlDocument();
-
-                        UserUrl = "http://api.soundcloud.com/users/" + userid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
-                        doc.Load(UserUrl);
-                        foreach (XmlNode child in doc.DocumentElement)
-                        {
-
-                            string candownload = child.SelectSingleNode("downloadable").InnerText;
-
-                            if (candownload == "true")
-                            {
-                                countSongs++;
-                                System.Threading.Thread.Sleep(100);
-                                worker2.ReportProgress(number2++);
-                            }
-                        }
-                    }
-                }
-                else if (followers == true)
-                {
-                    userList.Clear();
-
-                    foreach (string stuff in listUsers.Items)
-                    {
-                        userList.Add(stuff);
-                    }
-                    System.Threading.Thread.Sleep(100);
-                    foreach (string users in userList)
-                    {
-                        XmlDocument doc = new XmlDocument();
-                        XmlDocument doc3 = new XmlDocument();
-                        try
-                        {
-                            ResolveUrl = "http://api.soundcloud.com/resolve.xml?url=http://soundcloud.com/" + users + "/&client_id=" + Settings.Default.apiKey;
-                            doc3.Load(ResolveUrl);
-                        }
-                        catch (Exception)
-                        {
-                            MessageBox.Show("The Username You Entered Is Invalid.");
-                            done = true;
-                        }
-                        userid = doc3.DocumentElement.SelectSingleNode("id").InnerText;
-
-                        string UserUrlFollowings = "http://api.soundcloud.com/users/" + userid + "/followings.xml?client_id=" + Settings.Default.apiKey;
-                        doc.Load(UserUrlFollowings);
-
-
-                        foreach (XmlNode child2 in doc.DocumentElement)
-                        {
-
-                            XmlDocument doc2 = new XmlDocument();
-                            string trackid = child2.SelectSingleNode("id").InnerText;
-                            UserUrl = "http://api.soundcloud.com/users/" + trackid + "/tracks.xml?client_id=" + Settings.Default.apiKey;
-                            doc2.Load(UserUrl);
-
-                            foreach (XmlNode child in doc2.DocumentElement)
-                            {
-                                string candownload = child.SelectSingleNode("downloadable").InnerText;
-
-                                if (candownload == "true")
-                                {
-                                    countSongs++;
-                                    System.Threading.Thread.Sleep(100);
-                                    worker2.ReportProgress(number2++);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                progressIncrementValue = 100 / countSongs;
-                progress = false;
-                done = true;
-                likes = false;
-                tracks = false;
-                followers = false;
-                all = false;
-                username = "";
-                worker2.ReportProgress(number2++);
-                bw2.CancelAsync();
-                bw2.Dispose();  
-            }
-        }
-
-        private void btnRemove_Click(object sender, RoutedEventArgs e)
-        {
-            listUsers.Items.Remove(listUsers.SelectedItem);
         }
 
         private void btnDirectory_Click(object sender, RoutedEventArgs e)
@@ -804,21 +645,38 @@ namespace SoundSyncGUI
             txtDirectory.Text = Settings.Default.chooseDirectory;
         }
 
-        private void mainWindow_Loaded(object sender, RoutedEventArgs e)
-        {
-            txtDownloading.IsReadOnly = true;
-
-            txtDirectory.Text = Settings.Default.chooseDirectory;
-            changePath();
-        }
-
         private void txtAddUser_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
                 btnAdd_Click(null, null);
             }
-        }  
+        }
+
+        private void btnCancel_Click(object sender, RoutedEventArgs e)
+        {
+            mainWindow_Closing(null, null);
+        }
+
+        private void DisableButtons()
+        {
+            btnDownloadFollowers.IsEnabled = false;
+            btnDownloadLikes.IsEnabled = false;
+            btnDownloadTracks.IsEnabled = false;
+            btnAdd.IsEnabled = false;
+            btnRemove.IsEnabled = false;
+            btnDirectory.IsEnabled = false;
+        }
+
+        private void EnableButtons()
+        {
+            btnDownloadFollowers.IsEnabled = true;
+            btnDownloadLikes.IsEnabled = true;
+            btnDownloadTracks.IsEnabled = true;
+            btnAdd.IsEnabled = true;
+            btnRemove.IsEnabled = true;
+            btnDirectory.IsEnabled = true;
+        }
     }
 }
      

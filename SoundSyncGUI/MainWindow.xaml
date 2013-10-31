@@ -6,12 +6,11 @@
         <ListBox x:Name="listUsers" HorizontalAlignment="Left" Height="164" Margin="7,65,0,0" VerticalAlignment="Top" Width="156"/>
         <Button x:Name="btnDownloadLikes" Content="Download Likes" HorizontalAlignment="Left" Margin="7,232,0,0" VerticalAlignment="Top" Width="102" Click="btnDownloadLikes_Click"/>
         <Button x:Name="btnDownloadTracks" Content="Download Tracks" HorizontalAlignment="Left" Margin="114,232,0,0" VerticalAlignment="Top" Width="156" Click="btnDownloadTracks_Click"/>
-        <Button x:Name="btnDownloadFollowers" Content="Download Followers" HorizontalAlignment="Left" Margin="277,232,0,0" VerticalAlignment="Top" Width="156" Click="btnDownloadFollowers_Click"/>
-        <TextBox x:Name="txtDownloading" HorizontalAlignment="Left" Height="164" Margin="168,63,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="426" Background="#FFCFCCCC"/>
+        <Button x:Name="btnDownloadFollowers" Content="Download Followers Tracks" HorizontalAlignment="Left" Margin="277,232,0,0" VerticalAlignment="Top" Width="226" Click="btnDownloadFollowers_Click"/>
+        <TextBox x:Name="txtDownloading" HorizontalAlignment="Left" Height="164" Margin="168,63,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="426" Background="#FFCFCCCC" IsManipulationEnabled="True"/>
         <TextBox x:Name="txtAddUser" HorizontalAlignment="Left" Height="23" Margin="168,15,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="121" KeyDown="txtAddUser_KeyDown"/>
         <Button x:Name="btnAdd" Content="Add" HorizontalAlignment="Left" Margin="10,14,0,0" VerticalAlignment="Top" Width="75" Click="btnAdd_Click"/>
         <Button x:Name="btnDirectory" Content="Change Directory" HorizontalAlignment="Left" Margin="294,38,0,0" VerticalAlignment="Top" Width="100" Click="btnDirectory_Click"/>
-        <Button x:Name="btnDownloadAll" Content="Download All The Things!" HorizontalAlignment="Left" Margin="438,232,0,0" VerticalAlignment="Top" Width="156" Click="btnDownloadAll_Click"/>
         <ProgressBar x:Name="progressCounter" HorizontalAlignment="Left" Height="20" Margin="294,13,0,0" VerticalAlignment="Top" Width="100"/>
         <TextBlock x:Name="txtCalculate" HorizontalAlignment="Left" Margin="414,19,0,0" TextWrapping="Wrap" Text="0 Songs" VerticalAlignment="Top"/>
         <Label x:Name="lblCalculate" Content="Songs In Queue" HorizontalAlignment="Left" Margin="409,0,0,0" VerticalAlignment="Top"/>
@@ -19,6 +18,7 @@
         <Label x:Name="lblDirectory" HorizontalAlignment="Left" Margin="399,35,0,0" VerticalAlignment="Top"/>
         <Label x:Name="lblAddUser" Content="Add User :" HorizontalAlignment="Left" Margin="103,11,0,0" VerticalAlignment="Top"/>
         <TextBlock x:Name="txtDirectory" HorizontalAlignment="Left" Margin="409,40,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Width="156"/>
+        <Button x:Name="btnCancel" Content="Exit" HorizontalAlignment="Left" Margin="508,232,0,0" VerticalAlignment="Top" Width="86" Click="btnCancel_Click"/>
 
     </Grid>
 </Window>
