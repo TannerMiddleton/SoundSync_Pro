@@ -185,7 +185,10 @@ namespace SoundSyncGUI
                 }
                 finally
                 {
-                    EnableButtons();
+                    Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                    {
+                        EnableButtons();
+                    }));
                 }
             });
         }
@@ -316,7 +319,10 @@ namespace SoundSyncGUI
                     }
                     finally
                     {
-                        EnableButtons();
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                        {
+                            EnableButtons();
+                        }));
                     }
                 });
         }
@@ -451,7 +457,10 @@ namespace SoundSyncGUI
                     }
                     finally
                     {
-                        EnableButtons();
+                        Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() =>
+                        {
+                            EnableButtons();
+                        }));
                     }
                 });
         }
@@ -606,13 +615,17 @@ namespace SoundSyncGUI
 
         private void btnAdd_Click(object sender, RoutedEventArgs e)
         {
-            listUsers.Items.Add(txtAddUser.Text);
-            txtAddUser.Text = "";
+            if (!string.IsNullOrWhiteSpace(txtAddUser.Text))
+            {
+                listUsers.Items.Add(txtAddUser.Text);
+                txtAddUser.Text = ""; 
+            }
         }
 
         private void btnRemove_Click(object sender, RoutedEventArgs e)
         {
             listUsers.Items.Remove(listUsers.SelectedItem);
+            listUsers.SelectedIndex = 0;
         }
 
         private void mainWindow_Closing(object sender, CancelEventArgs e)
