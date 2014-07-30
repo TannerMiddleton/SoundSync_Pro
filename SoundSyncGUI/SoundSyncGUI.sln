@@ -1,7 +1,9 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoundSyncGUI", "SoundSyncGUI\SoundSyncGUI.csproj", "{EA85CE45-35D4-428D-AAB4-2AC20E5D8576}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoundSyncGUI", "SoundSyncGUI.csproj", "{EA85CE45-35D4-428D-AAB4-2AC20E5D8576}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{47C04AC2-963F-4623-82D3-AA56DC5EA844}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
